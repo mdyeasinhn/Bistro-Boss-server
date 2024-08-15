@@ -114,7 +114,7 @@ async function run() {
       res.send(result);
     });
 
-    app.delete('/user/:id', verifyToken, verifyAdmin, async(req, res) => {
+    app.delete('/user/:id', verifyToken, verifyAdmin, async (req, res) => {
       const id = req.params.id;
       const query = { _id: new ObjectId(id) }
       const result = await userCollection.deleteOne(query);
@@ -126,25 +126,25 @@ async function run() {
       res.send(result)
     });
 
-    app.get('/menu/:id', async(req, res)=>{
+    app.get('/menu/:id', async (req, res) => {
       const id = req.params.id;
-      const query = {_id: new ObjectId(id)};
+      const query = { _id: new ObjectId(id) };
       const result = await menuCollection.findOne(query);
       res.send(result)
     });
 
-    app.post('/menu',verifyToken, verifyAdmin, async(req, res)=>{
+    app.post('/menu', verifyToken, verifyAdmin, async (req, res) => {
       const item = req.body;
       const result = await menuCollection.insertOne(item);
       res.send(result);
     });
 
-    app.patch('/menu/:id', async(req, res) =>{
-      const item =req.body;
+    app.patch('/menu/:id', async (req, res) => {
+      const item = req.body;
       const id = req.params.id;
-      const filter = {_id : new ObjectId(id) };
+      const filter = { _id: new ObjectId(id) };
       const updatedDoc = {
-        $set : {
+        $set: {
           ...item
         }
       }
@@ -153,9 +153,9 @@ async function run() {
     })
 
     //delete api
-    app.delete('/menu/:id', verifyToken, verifyAdmin, async(req, res)=>{
-      const id= req.params.id;
-      const query = {_id : new ObjectId(id)};
+    app.delete('/menu/:id', verifyToken, verifyAdmin, async (req, res) => {
+      const id = req.params.id;
+      const query = { _id: new ObjectId(id) };
       const result = await menuCollection.deleteOne(query);
       res.send(result);
     });
@@ -186,21 +186,30 @@ async function run() {
       res.send(result)
     });
 
-// payment intent
-app.post('/create-payment-intent', async(req, res)=>{
-  const {price} = req.body;
-  const amount = parseInt(price * 100);
+    // payment intent
+    app.post('/create-payment-intent', async (req, res) => {
+      try {
+        const { price } = req.body;
+        const amount = parseInt(price * 100);
+        console.log(amount, 'amount inside');
 
-  const paymentIntent = await stripe.paymentIntents.create({
-    amount : amount,
-    currency : 'usd',
-    payment_method_types : ['card']
-  });
-  res.send({
-    clientSecret : paymentIntent.client_Secret
-  })
+        const paymentIntent = await stripe.paymentIntents.create({
+          amount: 100,
+          currency: 'usd',
+          payment_method_types: ['card']
+        });
+        res.send({
+          clientSecret: paymentIntent.client_Secret
+        });
+      } catch (error) {
+        res.send({
+          success: true, 
+          message : error.message
+        })
+      }
 
-})
+    });
+    
 
 
     // Send a ping to confirm a successful connection
