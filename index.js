@@ -2,6 +2,7 @@ require('dotenv').config()
 const express = require('express')
 const jwt = require('jsonwebtoken')
 const cors = require('cors')
+const bcrypt = require('bcrypt')
 const { MongoClient, ServerApiVersion, ObjectId } = require('mongodb')
 // const { JsonWebTokenError } = require('jsonwebtoken');
 const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY)
@@ -15,7 +16,7 @@ const port = process.env.PORT || 9000
 app.use(cors())
 app.use(express.json())
 
-const uri = `mongodb+srv://${process.env.DB_USER}:${process.env.DB_PASS}@cluster0.qrif73o.mongodb.net/?appName=Cluster0`
+const uri = `mongodb+srv://${process.env.DB_USER}:${process.env.DB_PASS}@cluster0.0afhd.mongodb.net/bistro?appName=Cluster0`
 
 // Create a MongoClient with a MongoClientOptions object to set the Stable API version
 const client = new MongoClient(uri, {
@@ -103,6 +104,33 @@ async function run() {
       }
       const result = await userCollection.insertOne(user)
       res.send(result)
+    })
+
+    app.post('/users/register', async (req, res) => {
+      const { email, password, name } = req.body
+      const query = { email: email }
+      const existingUser = await userCollection.findOne(query)
+      if (existingUser) {
+        return res.send({ message: 'user already exists', insertedId: null })
+      }
+      const hashedPassword = await bcrypt.hash(password, 10)
+      const user = { email, password: hashedPassword, name, role: 'user' }
+      const result = await userCollection.insertOne(user)
+      res.send(result)
+    })
+
+    app.post('/users/login', async (req, res) => {
+      const { email, password } = req.body
+      const user = await userCollection.findOne({ email })
+      if (!user) {
+        return res.status(401).send({ message: 'invalid email or password' })
+      }
+      const isPasswordValid = await bcrypt.compare(password, user.password)
+      if (!isPasswordValid) {
+        return res.status(401).send({ message: 'invalid email or password' })
+      }
+      const token = jwt.sign({ email: user.email }, process.env.ACCESS_TOKEN_SECRET, { expiresIn: '1h' })
+      res.send({ token, user: { email: user.email, name: user.name, role: user.role } })
     })
 
     app.patch('/users/admin/:id', verifyAdmin, async (req, res) => {
